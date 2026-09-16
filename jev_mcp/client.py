@@ -109,7 +109,12 @@ class JevClient:
             TypeSafeClient(
                 api_key=load_api_key(),
                 model=self._model,
-                retry=RetryPolicy(max_retries=3, timeout=DEFAULT_RETRY_BUDGET_SECONDS),
+                retry=RetryPolicy(
+                    max_retries=3,
+                    backoff_initial=1.0,
+                    backoff_max=20.0,
+                    timeout=DEFAULT_RETRY_BUDGET_SECONDS,
+                ),
                 timeout=DEFAULT_TIMEOUT_SECONDS,
             )
             if client is None

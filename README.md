@@ -161,7 +161,11 @@ The default serialized request budget is 120,000 characters for the state and qu
 `JEV_MCP_MAX_REQUEST_CHARS` to use a different positive limit. `JEV_MCP_MAX_STATE_CHARS` remains accepted as a
 compatibility alias for one release. For `jev_match`, the budget applies to the full candidate input and to each
 serialized candidate window.
-The service provider has not published rate limits. A Noul carries evidence strength, not confidence. Jev is early access:
+The service provider has not published rate limits. What we observed on one early-access key: small requests ran at
+160 per second with flat latency and no rate-limit responses, while a sustained run of about 40 requests per second
+at 1,700 tokens each drew 429s after three minutes. Treat the limit as tokens per minute rather than requests per
+second, keep bulk jobs resumable, and back off for seconds on a 429, not milliseconds. This server's retry policy
+backs off from 1 second to 20 seconds and honors `Retry-After`. A Noul carries evidence strength, not confidence. Jev is early access:
 validate thresholds and outputs against your own data, and keep consequential actions behind your normal review controls.
 
 `jev_match` accepts a `window` from 20 through 254 and up to 2,000 candidates by default. Set

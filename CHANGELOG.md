@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Retry backoff on 429 and 5xx now starts at 1 second and grows to 20 seconds, matching what a
+  sustained token-per-minute limit needs; the README documents the observed limits.
+
 ## 0.2.1 - Safer boundaries and bounded matching
 
 - Kept malformed and invalid tool calls inside the safe 400 envelope, with bounded error details; no input values are
