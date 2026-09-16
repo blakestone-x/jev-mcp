@@ -1,0 +1,53 @@
+{
+  "state": {
+    "task": "Review a difficult multi-file failure before making any external change.",
+    "constraints": "The work is local, evidence must be collected, and a person approves consequential actions."
+  },
+  "questions": {
+    "execution_path": {
+      "type": "choice",
+      "instructions": "Which execution path is the best fit for this task?",
+      "criteria": {
+        "quick": "Search, lookup, or mechanical fan-out with low judgment and low consequence.",
+        "bounded": "A scoped read or transformation with clear inputs, outputs, and verification.",
+        "review": "Review, verification, planning, or synthesis where judgment and tradeoffs matter.",
+        "high_risk": "Architecture, security, external impact, or a difficult multi-file failure.",
+        "typed_judgment": "A label, ordered level, or yes/no judgment over text with a closed answer space."
+      }
+    },
+    "difficulty": {
+      "type": "score",
+      "instructions": "How difficult is the task to complete reliably?",
+      "criteria": [
+        "Mechanical: a deterministic lookup, search, or small fan-out with an obvious check.",
+        "Bounded: a scoped read or transformation with clear inputs, outputs, and verification.",
+        "Judgment-heavy: review, synthesis, planning, or several interacting constraints.",
+        "High-risk or novel: architecture, security, external impact, or a difficult multi-file failure."
+      ]
+    },
+    "needs_visuals": {
+      "type": "noul",
+      "instructions": "The task needs an image, screenshot, visual layout, or other visual input to answer reliably.",
+      "criteria": {
+        "true": "Visual evidence is necessary to complete or verify the task.",
+        "false": "Text, code, structured data, or ordinary tools are sufficient."
+      }
+    },
+    "needs_tools": {
+      "type": "noul",
+      "instructions": "The task needs filesystem, browser, repository, database, or network tools.",
+      "criteria": {
+        "true": "The task cannot be completed reliably from the prompt alone; tools are needed.",
+        "false": "The task can be answered from the supplied context without external access."
+      }
+    },
+    "external_effect": {
+      "type": "noul",
+      "instructions": "The task can change or expose live systems, data, access, deployments, or external state.",
+      "criteria": {
+        "true": "It could change or expose external state or protected material.",
+        "false": "It is isolated to read-only analysis, local code, tests, or a reversible mock."
+      }
+    }
+  }
+}

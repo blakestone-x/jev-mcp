@@ -1,0 +1,81 @@
+{
+  "state": {
+    "problem": "A scheduled task stopped after a recent change.",
+    "context": "The failure is repeatable in a local fixture, and no external state has been changed."
+  },
+  "questions": {
+    "kind": {
+      "type": "choice",
+      "instructions": "What kind of problem is most likely from the state? Choose other when no listed kind fits.",
+      "criteria": {
+        "data_wrong": "A stored value or record is incorrect compared with its authoritative source.",
+        "data_stale": "The source may be current but a copy or projection is behind.",
+        "access": "An identity, credential, role, or policy prevents a valid action.",
+        "missing_dependency": "A required package, executable, service, or shared tool is absent.",
+        "implementation_bug": "A reproducible implementation defect is the most likely cause.",
+        "configuration": "A setting, environment variable, path, or local configuration is wrong.",
+        "service_unavailable": "A reachable dependency or service is unavailable or timing out.",
+        "ambiguous_requirement": "The written requirements or current behavior do not determine one safe action.",
+        "human_decision": "A person must choose, approve, supply, or confirm something before work can continue.",
+        "handoff": "The work is blocked by ownership, workspace, hooks, or an incomplete handoff.",
+        "other": "A concrete problem that does not fit the listed categories."
+      }
+    },
+    "severity": {
+      "type": "score",
+      "instructions": "How severe is this problem for the current operation?",
+      "criteria": [
+        "Cosmetic: confusing or inconvenient, but no work is blocked and no data is at risk.",
+        "Degraded: work can continue with a known workaround and no evidence of corruption.",
+        "Blocking one task: the assigned task cannot proceed until this is resolved or handed off.",
+        "Blocking many tasks or risking data: multiple operators are blocked, or integrity may be compromised."
+      ]
+    },
+    "reversibility": {
+      "type": "score",
+      "instructions": "How reversible is the next response to this problem?",
+      "criteria": [
+        "Read-only observation: inspect, reproduce, or collect evidence without changing state.",
+        "Reversible change: a local or controlled change can be backed out without external impact.",
+        "Destructive or external side effect: deletion, deployment, or an irreversible action."
+      ]
+    },
+    "needs_human": {
+      "type": "noul",
+      "instructions": "A person must decide or supply something before an agent can proceed.",
+      "criteria": {
+        "true": "A human decision, approval, credential, or missing fact is required now.",
+        "false": "An agent can proceed using available evidence and authorized reversible work."
+      }
+    },
+    "root_cause_stated": {
+      "type": "noul",
+      "instructions": "The state names a specific file, function, setting, or condition as the cause.",
+      "criteria": {
+        "true": "The state identifies a concrete causal file, function, setting, or condition.",
+        "false": "The state describes a symptom, suspicion, or broad area without a specific cause."
+      }
+    },
+    "retry_would_help": {
+      "type": "noul",
+      "instructions": "Simply retrying the same action is likely to succeed.",
+      "criteria": {
+        "true": "Evidence points to a transient failure and the same request is safe to repeat.",
+        "false": "Retrying is unlikely to change the condition or could repeat an unsafe side effect."
+      }
+    },
+    "next_move": {
+      "type": "choice",
+      "instructions": "What is the safest useful next move for an agent?",
+      "criteria": {
+        "retry": "Retry the same action only when the evidence points to a transient failure.",
+        "read_context": "Read the relevant code, logs, contract, source record, or handoff evidence first.",
+        "ask_person": "Ask the operator for a missing decision or a narrowly scoped fact.",
+        "repair_configuration": "Repair a local setting, environment variable, path, or dependency configuration.",
+        "write_test": "Capture the suspected behavior in a focused test before changing implementation.",
+        "stop_and_report": "Stop before side effects and report the evidence-backed blocker and boundary.",
+        "other": "Use a different concrete next move that is safer or more direct."
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jev-mcp"
+version = "0.2.1"
+description = "A stdio MCP server for typed judgments over a closed answer set"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Blake Stone" },
+]
+requires-python = ">=3.10"
+keywords = ["mcp", "typed-judgments", "classification", "scoring", "screening"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "mcp>=2.2,<3",
+    "typesafe-sdk>=0.6,<1",
+    "httpx2>=2.5.0,<3",
+    "pydantic>=2.0,<3",
+    "msgspec>=0.18,<1",
+    "typing-extensions>=4.6,<5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2",
+    "pytest>=9.0",
+    "ruff>=0.16",
+    "pyright>=1.1",
+]
+
+[project.scripts]
+jev-mcp = "jev_mcp.__main__:main"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint.per-file-ignores]
+"jev_mcp/questions.py" = ["E501"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["jev_mcp", "tests"]
+exclude = [".venv"]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+venvPath = "."
+venv = ".venv"
+reportMissingTypeStubs = false
