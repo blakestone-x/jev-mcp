@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed `_response_data`, `_request_char_count` and `jev_health` so they also serialize
+  `typesafe-sdk` 0.7 pydantic responses and questions. Before this change every tool
+  answered a 500 "Jev tool failed" envelope against that SDK version.
 - Retry backoff on 429 and 5xx now starts at 1 second and grows to 20 seconds, matching what a
   sustained token-per-minute limit needs; the README documents the observed limits.
 
