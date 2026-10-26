@@ -14,7 +14,7 @@ from typing import TypeAlias, cast
 
 import msgspec
 from mcp.server import MCPServer
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from typesafe_sdk import (
     Choice,
     Noul,
@@ -190,8 +190,16 @@ def _failure(error: Exception) -> JSONObject:
 def _response_data(response: SystemOneResponse) -> SystemOneData:
     """Convert the SDK's frozen response into a typed JSON boundary."""
 
-    builtins: object = msgspec.to_builtins(response, str_keys=True)
+    builtins: object = msgspec.to_builtins(response, str_keys=True, enc_hook=_sdk_enc_hook)
     return SystemOneData.model_validate(builtins)
+
+
+def _sdk_enc_hook(value: object) -> object:
+    """Convert SDK Pydantic models using their wire serializer."""
+
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="python")
+    raise TypeError(f"unsupported SDK value type: {type(value).__name__}")
 
 
 def _latency_ms(started: float) -> float:
@@ -254,7 +262,11 @@ def _request_char_count(
     state: StateValue,
     questions_to_ask: Mapping[str, SDKQuestion],
 ) -> int:
-    built_questions: object = msgspec.to_builtins(questions_to_ask, str_keys=True)
+    built_questions: object = msgspec.to_builtins(
+        questions_to_ask,
+        str_keys=True,
+        enc_hook=_sdk_enc_hook,
+    )
     return _serialized_char_count({"state": state, "questions": built_questions})
 
 
@@ -1035,7 +1047,7 @@ def jev_health() -> JSONObject:
         HealthInput()
         client = get_client()
         response = client.list_models()
-        builtins: object = msgspec.to_builtins(response, str_keys=True)
+        builtins: object = msgspec.to_builtins(response, str_keys=True, enc_hook=_sdk_enc_hook)
         health = HealthData.model_validate(builtins)
         if not health.models:
             raise ValueError("TypeSafe service returned no models")

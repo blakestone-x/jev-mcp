@@ -10,7 +10,7 @@ from typing import cast
 import httpx2
 import pytest
 from pydantic import ValidationError
-from typesafe_sdk import RetryPolicy, TypeSafeClient
+from typesafe_sdk import RetryPolicy, Score, TypeSafeClient
 
 from jev_mcp import server
 from jev_mcp.client import JevClient, RequestLimiter
@@ -823,6 +823,46 @@ def test_request_budget_covers_question_inputs(monkeypatch: pytest.MonkeyPatch) 
         assert result["ok"] is False
         assert result["status"] == 400
         assert "JEV_MCP_MAX_REQUEST_CHARS" in json.dumps(result)
+
+
+def test_request_budget_serializes_sdk_questions_at_unicode_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+    install_gateway: Callable[[dict[str, object]], JevClient],
+) -> None:
+    question = {"type": "noul", "criteria": {"true": None, "false": "否"}}
+    state = "é"
+    expected_payload = {
+        "state": state,
+        "questions": {"q": {"type": "noul", "criteria": {"true": None, "false": "否"}}},
+    }
+    expected_chars = len(json.dumps(expected_payload, ensure_ascii=False, separators=(",", ":")))
+
+    install_gateway({"q": noul_answer(0.8)})
+    monkeypatch.setenv("JEV_MCP_MAX_REQUEST_CHARS", str(expected_chars))
+    result = server.jev_ask(state, {"q": question})
+    assert result["ok"] is True
+    monkeypatch.setenv("JEV_MCP_MAX_REQUEST_CHARS", str(expected_chars - 1))
+    result = server.jev_ask(state, {"q": question})
+    assert result["ok"] is False
+    assert result["status"] == 400
+
+
+def test_response_boundary_serializes_sdk_models(
+    install_gateway: Callable[[dict[str, object]], JevClient],
+) -> None:
+    gateway = install_gateway({"score": score_answer(1.0, level_count=2)})
+    response = gateway.evaluate(
+        state="probe",
+        questions={"score": Score(criteria=["low", "medium"])},
+    )
+
+    data = server._response_data(response)  # pyright: ignore[reportPrivateUsage]
+    answer = as_object(data.answers["score"])
+    assert data.model == "jev-test"
+    assert data.usage.input_tokens == 100
+    assert data.usage.output_tokens == 0
+    assert answer["legend"] == {"0": "low", "1": "medium"}
+    assert answer["probabilities"] == {"0": 0.5, "1": 1.0}
 
 
 def test_request_budget_caps_large_label_descriptions(monkeypatch: pytest.MonkeyPatch) -> None:
