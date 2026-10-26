@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import shutil
@@ -11,31 +12,41 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCANNER_PATH = Path(__file__).resolve()
 EXCLUDED_DIRECTORIES = {".git", ".venv", ".pytest_cache", ".ruff_cache", ".pyright", "build", "dist"}
+# Public product and author names, matched as whole words.
 BLOCKED_WORDS = (
-    "ESC",
-    "Atlas",
-    "cdc",
-    "VPS",
-    "tailnet",
     "Codex",
     "Claude",
-    "beads",
-    "CRUCIBLE",
-    "edevbox",
-    "Tug",
-    "ICS",
     "Blake",
-    "icsops",
-    "C:\\dev",
     "Luna",
     "Terra",
     "Sol",
     "Haiku",
     "Sonnet",
     "Opus",
-    "FleetView",
-    "Prebrief",
 )
+# Private names, kept out of this file too: salted sha256 of the lowercased word. A whole word, or a Windows
+# drive path's first three characters ("x:\abc"), is hashed and checked against this set.
+HASH_SALT = "jev-mcp-public-vocabulary-v1:"
+BLOCKED_HASHES = frozenset(
+    {
+        "382a61ce9afe1216d2e58e12d3cfdec96e7fa1d465539281d24683a85ed4b24d",
+        "ff07ae037fd24317e4291939384b3dc6ae9ce6f6f9171923ac6d9d7cf792bc57",
+        "1e482efe892bfba8e96e68b250b13c4eab24496d72ee4c7414202c8d6934da60",
+        "00faf5f53cd60d9e027717545764ae6ab4f7ca1c00537f224cd08c2ae0b155cc",
+        "bd5e40b7085ea40f47431c1ce9feef70744eed50054a8194a63d1d4af1cf96f6",
+        "a514f2e562fe3364dba89249e62ff82ab6285691e4500f9140333f53c538d74e",
+        "c32ed45641781a36c97934403fa6ae2566c07cc97822302596640ef6981543d6",
+        "94f458c849eb7d062215244f1eb6995866fe3a9256884d1f59bf91fe40fb00c8",
+        "7a4edaa8356f912aba88d44642adf05720482e5fc69dcd57a40da904a997f8ba",
+        "f79a0a77949851d325b9e8c03f6447c81b4b1fbe3b4c724d6881bf88598c3399",
+        "1797a1dcf7eab34b0c5ffbf285c6e992120157b1f4a51727d8498b4dfecf70ac",
+        "cbdb2caf3ae27e7efbbfddc27534fbf340200eb27d6024886762eff17d4f0fff",
+        "df13e03fad5f8c86fa094968378d68c684b503a65d64d646c780ab2cc0faba21",
+        "d8ac33fc24f5782ab0f1e859ca77963d8c4f637a3543180ef26d9d4d8de2ff25",
+    }
+)
+WORD_TOKEN = re.compile(r"(?<![A-Za-z0-9])[A-Za-z0-9]+(?![A-Za-z0-9])")
+DRIVE_PATH_TOKEN = re.compile(r"[A-Za-z]:\\[A-Za-z0-9]{3}")
 ALLOWED_BY_PATH = {
     Path("LICENSE"): {"Blake"},
     Path("pyproject.toml"): {"Blake"},
@@ -45,9 +56,17 @@ ALLOWED_BY_PATH = {
 
 
 def _pattern(word: str) -> re.Pattern[str]:
-    if word == "C:\\dev":
-        return re.compile(re.escape(word), re.IGNORECASE)
     return re.compile(rf"(?<![A-Za-z0-9]){re.escape(word)}(?![A-Za-z0-9])", re.IGNORECASE)
+
+
+def _digest(token: str) -> str:
+    return hashlib.sha256((HASH_SALT + token.lower()).encode("utf-8")).hexdigest()
+
+
+def _hashed_hits(content: str) -> set[str]:
+    tokens = {match.group(0) for match in WORD_TOKEN.finditer(content)}
+    tokens |= {match.group(0) for match in DRIVE_PATH_TOKEN.finditer(content)}
+    return {digest[:12] for digest in map(_digest, tokens) if digest in BLOCKED_HASHES}
 
 
 def _files_to_scan() -> list[Path]:
@@ -172,7 +191,17 @@ def _violations_for_content(
     for word, pattern in patterns.items():
         if word not in allowed and pattern.search(content):
             violations.append(f"{relative}: {word}")
+    for digest_prefix in sorted(_hashed_hits(content)):
+        violations.append(f"{relative}: private word {digest_prefix}")
     return violations
+
+
+def test_hashed_scan_catches_a_private_word() -> None:
+    sample_digest = next(iter(sorted(BLOCKED_HASHES)))
+    assert all(len(digest) == 64 for digest in BLOCKED_HASHES)
+    assert _hashed_hits("nothing private here") == set()
+    assert _digest("Example") == _digest("EXAMPLE")
+    assert sample_digest[:12] not in _hashed_hits("Example text")
 
 
 def test_public_vocabulary_is_scrubbed() -> None:
